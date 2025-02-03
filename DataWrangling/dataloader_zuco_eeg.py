@@ -3,16 +3,15 @@ import glob
 import h5py
 import pandas as pd
 
-filepath = "C:/Users/meca8121/Emotive Computing Dropbox/Megan Caruso/MC Data Folders/EyeMindLink_MC/Projects/eeg_gaze_deeplearning/datasets/"
-
-participant = "ZPH"
-task = "task1"
-dataset = "ZuCo1"
-
-def load_mat_eeg(filepath, participant, task, dataset):
+def load_mat_eeg(eeg_file, participant, task, dataset):
     """Load EEG data from a MATLAB v7.3 .mat file."""
-    f = os.path.join(filepath, dataset, task, "Raw Data", participant)
-    with h5py.File(filepath, 'r') as f:
+    #mat_file = os.path.join(filepath, dataset, task, "Raw Data", participant, f"{participant}_EEG.mat")
+    
+    if not os.path.exists(eeg_file):
+        print(f"File not found: {eeg_file}")
+        return None
+    
+    with h5py.File(eeg_file, 'r') as f:
         eeg_data = f['EEG/data'][:].T  # Shape: (Channels, Timepoints)
         chanlocs_labels = f['EEG/chanlocs/labels'][:]
         
@@ -41,37 +40,51 @@ def load_all_eeg(base_dir):
     
     for dataset in datasets:
         for task in tasks:
-            #task_dir = os.path.join(dataset, task, "Preprocessed")
             task_dir = os.path.join(base_dir, dataset, task, "Preprocessed")
+            print(task_dir)
             if not os.path.exists(task_dir):
-                print("Could not find processed directory for: ", dataset, task)
+                print(f"Could not find processed directory for: {dataset}, {task}")
                 continue
             
             for participant in os.listdir(task_dir):
-                print(participant)
                 participant_dir = os.path.join(task_dir, participant)
                 if not os.path.isdir(participant_dir):
-                    print("Processed directory not fond for: ", participant)
+                    print(f"Processed directory not found for: {participant}")
                     continue
                 
                 # Load all _EEG.mat files
                 eeg_files = glob.glob(os.path.join(participant_dir, "*_EEG.mat"))
                 for eeg_file in eeg_files:
-                    print(eeg_file)
+                    print(f"Processing file: {eeg_file}")
                     eeg_df = load_mat_eeg(eeg_file, participant, task, dataset)
-                    all_data.append(eeg_df)
+                    if eeg_df is not None:
+                        all_data.append(eeg_df)
     
-    return pd.concat(all_data, ignore_index=True) if all_data else None
+    return pd.concat(all_data, ignore_index=True) if all_data else pd.DataFrame()
 
 # Define dataset directories
+#BASE_DIR = os.path.join("C:/", "Users", "meca8121", "Emotive Computing Dropbox", "Megan Caruso", 
+#                        "MC Data Folders", "EyeMindLink_MC", "Projects", "eeg_gaze_deeplearning", "datasets")
+
 BASE_DIR = "C:/Users/meca8121/Emotive Computing Dropbox/Megan Caruso/MC Data Folders/EyeMindLink_MC/Projects/eeg_gaze_deeplearning/datasets/"
-base_dir =  "C:/Users/meca8121/Emotive Computing Dropbox/Megan Caruso/MC Data Folders/EyeMindLink_MC/Projects/eeg_gaze_deeplearning/datasets/"
+
+participant = "ZPH"
+task = "task1"
+dataset = "ZuCo1"
+base_dir= "C:/Users/meca8121/Emotive Computing Dropbox/Megan Caruso/MC Data Folders/EyeMindLink_MC/Projects/eeg_gaze_deeplearning/datasets/"
+filepath = base_dir
 
 # Load and display the final DataFrame
 eeg_data_df = load_all_eeg(BASE_DIR)
-if eeg_data_df is not None:
+if not eeg_data_df.empty:
     import ace_tools as tools
     tools.display_dataframe_to_user(name="EEG Data", dataframe=eeg_data_df)
 
-#ZMG\oip_ZMG_SR1_EEG.mat
-ftest = "C:/Users/meca8121/Emotive Computing Dropbox/Megan Caruso/MC Data Folders/EyeMindLink_MC/Projects/eeg_gaze_deeplearning/datasets/ZuCo1\task1\Preprocessed\ZMG\oip_ZMG_SR1_EEG.mat"
+
+file_path =  "C:/Users/meca8121/Emotive Computing Dropbox/Megan Caruso/MC Data Folders/EyeMindLink_MC/Projects/eeg_gaze_deeplearning/datasets/ZuCo1/task1/Preprocessed/ZMG/oip_ZMG_SR1_EEG.mat"
+file_path = "C:/Users/meca8121/Emotive Computing Dropbox/Megan Caruso/MC Data Folders/EyeMindLink_MC/Projects/eeg_gaze_deeplearning/datasets/ZuCo1/task1/Preprocessed/ZMG/oip_ZMG_SNR7_EEG.mat"
+try:
+    with h5py.File(file_path, 'r') as f:
+        print("File successfully opened as HDF5.")
+except OSError:
+    print("File is not in HDF5 format.")
